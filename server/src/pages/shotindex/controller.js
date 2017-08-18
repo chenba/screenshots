@@ -68,6 +68,7 @@ exports.deleteShot = function(shot) {
       errorMessage = errorMessage.replace('{status}', req.status);
       errorMessage = errorMessage.replace('{statusText}', req.statusText);
       window.alert(errorMessage);
+      window.Raven.captureException(new Error(errorMessage));
     } else {
       refreshModel();
     }
