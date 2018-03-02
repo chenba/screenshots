@@ -109,6 +109,13 @@ function focusIframe(driver, iframeId) {
   });
 }
 
+function closeTab(driver) {
+  return driver.close()
+  .then(() => driver.getAllWindowHandles())
+  .then((tabs) => driver.switchTo().window(tabs[tabs.length - 1]))
+  .then(() => driver.switchTo().defaultContent())
+}
+
 function skipOnboarding(driver) {
   return focusIframe(driver, SLIDE_IFRAME_ID).then(() => {
     return driver.findElement(By.id("skip"));
@@ -202,7 +209,10 @@ describe("Test Screenshots", function() {
         done();
       }),
       () => {
-        driver.setContext(firefox.Context.CONTENT);
+        return driver.setContext(firefox.Context.CONTENT)
+          .then(() => driver.getAllWindowHandles())
+          .then((tabs) => driver.switchTo().window(tabs[tabs.length - 1]))
+          .then(() => driver.switchTo().defaultContent());
       }).catch(done);
   });
 

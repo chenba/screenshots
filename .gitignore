@@ -8,6 +8,8 @@ dist
 dist-production
 /build
 /node_modules
+/addon/node_modules
+/server/node_modules
 addon.log
 cookie-jar.txt
 .env.production
