@@ -2,15 +2,18 @@
 
 set -e
 bin="$(dirname ${BASH_SOURCE[0]})"
-cd $bin/..
+base="$bin/../server"
+PATH="$base/node_modules/.bin:$PATH"
+
 if [[ -z "$NODE_ENV" ]] ; then
   export NODE_ENV=dev
 fi
-PATH="node_modules/.bin:$PATH"
 
-if [[ ! -e "node_modules/.bin/nodemon" ]] ; then
+if [[ ! -e "$base/node_modules/.bin/nodemon" ]] ; then
   echo "Installing node packages..."
+  pushd "$base"
   npm install
+  popd
 fi
 
 run () {
@@ -19,7 +22,7 @@ run () {
   fi
   if [ -d build ] ; then
     # This is to remove empty files that might have resulted from a syntax error:
-    find build/ -size 0 -exec rm {} \;
+    find "$base/../build/" -size 0 -exec rm {} \;
   fi
   make server || (notify "Firefox Screenshots server build FAILED" ; exit 2)
   if [[ -n "$restart" ]] ; then
@@ -70,7 +73,9 @@ done
 
 if [[ -z "$no_auto" ]] ; then
   nodemon \
-    -w server -w static -w shared \
+    -w server \
+    -w static \
+    -w shared \
     -w Makefile \
     -e .js,.scss,.css,.png,.svg,.ttf,.sql,.sh \
     --exec bash $0 -- --restart
