@@ -1,6 +1,6 @@
-PATH := ./node_modules/.bin:./bin/:$(PATH)
+PATH := ./server/node_modules/.bin:./addon/node_modules/.bin:./bin/:$(PATH)
 SHELL := /bin/bash
-BABEL := babel --retain-lines
+BABEL := NODE_PATH="server/node_modules:$(NODE_PATH)" babel --retain-lines
 RSYNC := rsync --archive
 VENV := .venv
 .DEFAULT_GOAL := help
@@ -31,7 +31,7 @@ partials_source := $(wildcard static/css/partials/*.scss)
 imgs_source := $(wildcard static/img/*)
 imgs_server_dest := $(imgs_source:%=build/server/%)
 
-raven_source := $(shell node -e 'console.log(require.resolve("raven-js/dist/raven.js"))')
+raven_source := $(shell NODE_PATH="server/node_modules:$(NODE_PATH)" node -e 'console.log(require.resolve("raven-js/dist/raven.js"))')
 
 l10n_source := $(wildcard locales/*)
 l10n_dest := $(l10n_source:%/webextension.properties=addon/webextension/_locales/%/messages.json)
@@ -73,7 +73,7 @@ build/%.css: %.css
 
 build/%.svg: %.svg
 	@mkdir -p $(@D)
-	./node_modules/.bin/svgo -q -i $< -o $@
+	svgo -q -i $< -o $@
 
 build/%.sql: %.sql
 	@mkdir -p $(@D)
@@ -101,7 +101,7 @@ flake8: $(VENV)
 .PHONY: zip
 zip: addon
 	# FIXME: should remove web-ext-artifacts/*.zip first
-	./node_modules/.bin/web-ext build --source-dir addon/webextension/ --ignore-files "**/README.md" --ignore-files "**/*.template"
+	web-ext build --source-dir addon/webextension/ --ignore-files "**/README.md" --ignore-files "**/*.template"
 	mv web-ext-artifacts/firefox_screenshots*.zip build/screenshots.zip
 	# We'll try to remove this directory, but it's no big deal if we can't:
 	rmdir web-ext-artifacts || true
@@ -118,12 +118,12 @@ unsigned_bootstrap_xpi: bootstrap_zip
 .PHONY: signed_xpi
 signed_xpi: addon
 	rm -f web-ext-artifacts/*.xpi
-	./node_modules/.bin/web-ext sign --api-key=${AMO_USER} --api-secret=${AMO_SECRET} --source-dir addon/webextension/
+	web-ext sign --api-key=${AMO_USER} --api-secret=${AMO_SECRET} --source-dir addon/webextension/
 	mv web-ext-artifacts/*.xpi build/screenshots.xpi
 
 .PHONY: addon_locales
 addon_locales:
-	./node_modules/.bin/pontoon-to-webext --dest addon/webextension/_locales > /dev/null
+	pontoon-to-webext --dest addon/webextension/_locales > /dev/null
 
 addon/install.rdf: addon/install.rdf.template package.json
 	./bin/build-scripts/update_manifest.py $< $@
@@ -172,7 +172,7 @@ build/server/package.json: package.json
 
 shot_dependencies := $(shell ./bin/build-scripts/bundle_dependencies shot getdeps "$(server_dest)")
 build/server/static/js/shot-bundle.js: $(shot_dependencies)
-	./bin/build-scripts/bundle_dependencies shot build ./build/server/pages/shot/controller.js
+	NODE_PATH="server/node_modules:$(NODE_PATH)" ./bin/build-scripts/bundle_dependencies shot build ./build/server/pages/shot/controller.js
 
 homepage_dependencies := $(shell ./bin/build-scripts/bundle_dependencies homepage getdeps "$(server_dest)")
 build/server/static/js/homepage-bundle.js: $(homepage_dependencies)
@@ -180,7 +180,7 @@ build/server/static/js/homepage-bundle.js: $(homepage_dependencies)
 
 metrics_dependencies := $(shell ./bin/build-scripts/bundle_dependencies metrics getdeps "$(server_dest)")
 build/server/static/js/metrics-bundle.js: $(metrics_dependencies)
-	./bin/build-scripts/bundle_dependencies metrics build ./build/server/pages/metrics/controller.js
+	NODE_PATH="server/node_modules:$(NODE_PATH)" ./bin/build-scripts/bundle_dependencies metrics build ./build/server/pages/metrics/controller.js
 
 shotindex_dependencies := $(shell ./bin/build-scripts/bundle_dependencies shotindex getdeps "$(server_dest)")
 build/server/static/js/shotindex-bundle.js: $(shotindex_dependencies)
@@ -263,7 +263,8 @@ clean:
 .PHONY: distclean
 distclean: clean
 	rm -rf $(VENV)
-	rm -rf ./node_modules
+	rm -rf ./addon/node_modules
+	rm -rf ./server/node_modules
 
 .PHONY: help
 help:

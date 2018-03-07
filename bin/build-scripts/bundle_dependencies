@@ -2,7 +2,8 @@
 
 set -e
 
-PATH="./node_modules/.bin/:$PATH"
+NODE_PATH="server/node_modules:$NODE_PATH"
+PATH="server/node_modules/.bin/:$PATH"
 project_name="$1"
 shift
 cmd="$1"
@@ -32,24 +33,24 @@ build() {
   dest="build/server/static/js/${project_name}-bundle.js"
   mkdir -p "$(dirname "$(depfile)")"
   echo -n "Building $(basename $dest): deps... "
-  browserify --list -e "$@" | sed "s!$(pwd)/!!g" | grep -v build-time > "$(depfile)"
-  if egrep -qv "^(build|node_modules)/" "$(depfile)" ; then
+  NODE_PATH="$NODE_PATH" browserify --list -e "$@" | sed "s!$(pwd)/!!g" | grep -v build-time > "$(depfile)"
+  if egrep -qv "^(build|server/node_modules)/" "$(depfile)" ; then
     echo
-    echo "error: $@ or its deps import files outside build/ or node_modules/:"
-    egrep -v "^(build|node_modules)/" "$(depfile)"
+    echo "error: $@ or its deps import files outside build/ or server/node_modules/:"
+    egrep -v "^(build|server/node_modules)/" "$(depfile)"
     echo "failed."
     exit 2
   fi
   echo -n "bundle... "
-  NODE_ENV="${NODE_ENV:-production}" browserify \
+  PATH="$PATH" NODE_PATH="$NODE_PATH" NODE_ENV="${NODE_ENV:-production}" browserify \
     -g [ envify --NODE_ENV $NODE_ENV ] \
     $( [[ -z $NO_UGLIFY ]] && printf %s '-g uglifyify' ) \
     -e "$@" \
-    | uglifyjs --compress --mangle > "$dest"
+    | NODE_PATH="$NODE_PATH" uglifyjs --compress --mangle > "$dest"
 
   if [[ -z "$NO_UGLIFY" ]] ; then
     echo -n "minimizing... "
-    uglifyjs -c -o "$dest" "$dest"
+    NODE_PATH="$NODE_PATH" uglifyjs -c -o "$dest" "$dest"
   fi
   echo "done."
 }
