@@ -1,0 +1,92 @@
+version: 2
+jobs:
+  build:
+    environment:
+      - NODE_ENV: production
+    docker:
+      - image: circleci/node:8.10.0
+    working_directory: ~/screenshots
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - node-modules-{{ checksum "package.json" }}
+      - run:
+          name: Install Node Modules
+          command: npm install
+      - run:
+          name: Make
+          command: make all
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./*
+      - save_cache:
+          key: node-modules-{{ checksum "package.json" }}
+          paths:
+            - node_modules
+  test:
+    environment:
+      - RDS_NAME: circle_test
+      - RDS_USERNAME: ubuntu
+      - NODE_ENV: production
+      - LOCALHOST_SSL: false
+      - DOCKERIZE_VERSION: v0.6.1
+    docker:
+      - image: circleci/node:8.10.0
+      - image: circleci/postgres:9.6
+        environment:
+          - POSTGRES_USER: ubuntu
+          - POSTGRES_DB: circle_test
+      - image: owasp/zap2docker-weekly
+        name: zap
+        entrypoint: zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.disablekey=true -config database.recoverylog=false -config connection.timeoutInSecs=120 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
+
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Dockerize
+          command:
+            if \[ -f /usr/local/bin/dockerize \]; then
+              echo "dockerize exists; skipping installation";
+            else wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+              && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+              && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz;
+            fi
+      - run:
+          name: Wait for Postgres
+          command: dockerize -wait tcp://localhost:5432 -timeout 30s
+      - run:
+          name: Start Server
+          command: node -e 'require("babel-polyfill"); require("./build/server/server");'
+          background: true
+      - run:
+          name: Wait for Server
+          command: dockerize -wait http://localhost:10080 -timeout 10s
+      - run:
+          name: Install Python Dependencies
+          command:
+            sudo apt install python-pip
+              && sudo pip install virtualenv requests
+      - run: ./bin/test-request put '{}'
+      - run: ./bin/load_test_exercise.py http://localhost:10080
+      - run: npm run test:server
+      - run:
+          name: Install Firefox
+          command: |
+            sudo apt-get install -y libgtk3.0-cil-dev libasound2 libasound2 libdbus-glib-1-2 libdbus-1-3
+            sudo npm i -g get-firefox
+            get-firefox --branch nightly --platform linux --extract --target ~/
+            ~/firefox/firefox -v
+      - run:
+          name: npm test
+          command: export PATH=~/firefox:$PATH && FIREFOX_CHANNEL=NIGHTLY MOZ_HEADLESS=1 npm test
+workflows:
+  version: 2
+  build_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
