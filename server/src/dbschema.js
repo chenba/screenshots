@@ -6,7 +6,8 @@ const mozlog = require("./logging").mozlog("dbschema");
 
 // When updating the database, please also run ./bin/dumpschema --record
 // This updates schema.sql with the latest full database schema
-const MAX_DB_LEVEL = exports.MAX_DB_LEVEL = 22;
+const MAX_DB_LEVEL = exports.MAX_DB_LEVEL = 23;
+const nonTransactionalPatches = [23];
 
 exports.forceDbVersion = function(version) {
   mozlog.info("forcing-db-version", {db: db.constr, version});
@@ -14,7 +15,7 @@ exports.forceDbVersion = function(version) {
     const dirname = path.join(__dirname, "db-patches");
     mozlog.info("loading-patches-from", {dirname});
     return new Promise((resolve, reject) => {
-      pgpatcher(conn, version, {dir: dirname}, function(err) {
+      pgpatcher(conn, version, {dir: dirname, nonTransactionalPatches}, function(err) {
         if (err) {
           mozlog.error("error-patching", {
             msg: `Error patching database to level ${version}!`,
