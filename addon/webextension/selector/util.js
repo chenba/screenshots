@@ -32,8 +32,6 @@ this.util = (function() { // eslint-disable-line no-unused-vars
     return y;
   };
 
-  // Pixels of wiggle the captured region gets in captureSelectedText:
-  const CAPTURE_WIGGLE = 10;
   const ELEMENT_NODE = document.ELEMENT_NODE;
 
   exports.captureEnclosedText = function(box) {
@@ -42,11 +40,12 @@ this.util = (function() { // eslint-disable-line no-unused-vars
     const text = [];
     function traverse(el) {
       let elBox = el.getBoundingClientRect();
+      const styles = window.getComputedStyle(el);
       elBox = {
-        top: elBox.top + scrollY,
-        bottom: elBox.bottom + scrollY,
-        left: elBox.left + scrollX,
-        right: elBox.right + scrollX
+        top: elBox.top + scrollY + parseFloat(styles.borderTopWidth) + parseFloat(styles.paddingTop),
+        bottom: elBox.bottom + scrollY - parseFloat(styles.borderBottomWidth) - parseFloat(styles.paddingBottom),
+        left: elBox.left + scrollX + parseFloat(styles.borderLeftWidth) + parseFloat(styles.paddingLeft),
+        right: elBox.right + scrollX + parseFloat(styles.borderRightWidth) - parseFloat(styles.paddingRight)
       };
       if (elBox.bottom < box.top ||
           elBox.top > box.bottom ||
@@ -55,10 +54,10 @@ this.util = (function() { // eslint-disable-line no-unused-vars
         // Totally outside of the box
         return;
       }
-      if (elBox.bottom > box.bottom + CAPTURE_WIGGLE ||
-          elBox.top < box.top - CAPTURE_WIGGLE ||
-          elBox.right > box.right + CAPTURE_WIGGLE ||
-          elBox.left < box.left - CAPTURE_WIGGLE) {
+      if (elBox.bottom > box.bottom ||
+          elBox.top < box.top ||
+          elBox.right > box.right ||
+          elBox.left < box.left) {
         // Partially outside the box
         for (let i = 0; i < el.childNodes.length; i++) {
           const child = el.childNodes[i];
