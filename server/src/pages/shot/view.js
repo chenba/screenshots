@@ -174,7 +174,6 @@ class Body extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      hidden: false,
       closeBanner: false,
       imageEditing: false
     };
@@ -315,20 +314,29 @@ class Body extends React.Component {
   }
 
   renderBody() {
-    const shot = this.props.shot;
-    const shotId = this.props.shot.id;
+    // Visitor: Link to home page | Shot title | Share | Copy | Download
+    // Owner: Link to My Shots | Shot title |  Favorite (disabled) | Draw | Share | Copy | Download | Delete | Sign In
+    // FxA User: Link to My Shots | Shot title | Favorite | Draw | Share | Copy | Download | Delete
 
+    const shot = this.props.shot;
     const clips = [];
     const clipNames = shot.clipNames();
-    if (clipNames.length && !this.state.hidden) {
+    let clipUrl = null;
+    if (clipNames.length) {
       const clipId = clipNames[0];
       const clip = shot.getClip(clipId);
+      clipUrl = clip.image.url;
 
       clips.push(<Clip
         staticLink={this.props.staticLink}
         key={ clipId }
         clip={ clip }
-        shotId={ shotId } />);
+        shotId={ shot.id } />);
+
+      clipUrl = clip.image.url;
+      if (!isValidClipImageUrl(clipUrl)) {
+        clipUrl = "";
+      }
     }
 
     const errorMessages = [
@@ -339,25 +347,51 @@ class Body extends React.Component {
     ];
 
     const linkTextShort = shot.urlDisplay;
-
     const timeDiff = <TimeDiff date={shot.createdDate} />;
 
-    let favoriteShotButton = null;
-    let trashOrFlagButton;
-    let editButton;
-    const highlight = this.state.highlightEditButton ? <div className="edit-highlight" onClick={ this.onClickEdit.bind(this) } onMouseOver={ this.onMouseOverHighlight.bind(this) } onMouseOut={ this.onMouseOutHighlight.bind(this) }></div> : null;
-
-    if (this.props.isFxaAuthenticated) {
-      const activeFavClass = this.props.expireTime ? "" : "is-fav";
-      favoriteShotButton = <div className="fav-wrapper"><button
-        className={`button favorite ${activeFavClass}`}
-        title="Favorite this shot"
-        onClick={ this.onClickFavorite.bind(this) }
-      /></div>;
+    let expirationSubTitle = null;
+    if (shot.expireTime === null) {
+      expirationSubTitle = <Localized id="shotPageDoesNotExpire"><span>does not expire</span></Localized>;
+    } else {
+      const expired = shot.expireTime < Date.now();
+      const expireTimeDiff = <TimeDiff date={shot.expireTime}/>;
+      if (expired) {
+        expirationSubTitle = <Localized id="shotPageExpired" $timediff={expireTimeDiff}><span>expired {expireTimeDiff}</span></Localized>;
+      } else {
+        expirationSubTitle = <Localized id="shotPageExpiresIn" $timediff={expireTimeDiff}><span>expires {expireTimeDiff}</span></Localized>;
+      }
     }
 
+    let homeLinkHref;
+    let homeLinkText;
+    let favoriteShotButton = null;
+    let deleteButton = null;
+    let editButton = null;
+    let editButtonHighlight = null;
+    const copyShotButton = <Localized id="shotPageEditButton">
+      <button className="button transparent copy" title="Copy this image">Copy</button>
+    </Localized>;
+
     if (this.props.isOwner) {
-      trashOrFlagButton = <DeleteShotButton
+      homeLinkHref = "/shots";
+      homeLinkText = <Localized id="gMyShots"><span className="back-to-index">My Shots</span></Localized>;
+
+      if (this.props.isFxaAuthenticated) {
+        const activeFavClass = this.props.expireTime ? "" : "is-fav";
+        favoriteShotButton = <div className="fav-wrapper"><button
+          className={`button favorite ${activeFavClass}`}
+          title="Favorite this shot"
+          onClick={ this.onClickFavorite.bind(this) }
+        /></div>;
+      } else {
+        favoriteShotButton = <div className="fav-wrapper"><button
+          className={`button favorite`}
+          title="Log in with Firefox Accounts to favorite this shot"
+          onClick={ this.onWantToFavorite.bind(this) }
+        /></div>;
+      }
+
+      deleteButton = <DeleteShotButton
         clickDeleteHandler={ this.clickDeleteHandler.bind(this) }
         confirmDeleteHandler={ this.confirmDeleteHandler.bind(this) }
         cancelDeleteHandler={ this.cancelDeleteHandler.bind(this) } />;
@@ -368,18 +402,15 @@ class Body extends React.Component {
         </Localized>
         <PromoDialog promoClose={this.promoClose.bind(this)} display={this.state.promoDialog} />
         </div>;
-    } else {
-      trashOrFlagButton = <Localized id="shotPageAbuseButton">
-        <button className="button transparent flag" title="Report this shot for abuse, spam, or other problems" onClick={ this.onClickFlag.bind(this) }></button>
-      </Localized>;
-      editButton = null;
-    }
 
-    let myShotsHref = "/shots";
-    let myShotsText = <Localized id="gMyShots"><span className="back-to-index">My Shots</span></Localized>;
-    // FIXME: this means that on someone else's shot they won't see a My Shots link:
-    if (!this.props.isOwner) {
-      myShotsText = <span className="back-to-home">
+      if (this.state.highlightEditButton) {
+        editButtonHighlight = <div className="edit-highlight"
+          onClick={this.onClickEdit.bind(this)}
+          onMouseOver={this.onMouseOverHighlight.bind(this)}
+          onMouseOut={this.onMouseOutHighlight.bind(this)}></div>;
+      }
+    } else {
+      homeLinkText = <span className="back-to-home">
         <span>
           Firefox
         </span>
@@ -387,18 +418,7 @@ class Body extends React.Component {
           Screenshots
         </span>
       </span>;
-      myShotsHref = "/";
-    }
-
-    let clip;
-    let clipUrl = null;
-    if (clipNames.length) {
-      const clipId = clipNames[0];
-      clip = this.props.shot.getClip(clipId);
-      clipUrl = clip.image.url;
-      if (!isValidClipImageUrl(clipUrl)) {
-        clipUrl = "";
-      }
+      homeLinkHref = "/";
     }
 
     let renderGetFirefox = this.props.userAgent && (this.props.userAgent + "").search(/firefox\/\d{1,255}/i) === -1;
@@ -412,45 +432,47 @@ class Body extends React.Component {
 
     return (
       <reactruntime.BodyTemplate {...this.props}>
-        { renderGetFirefox ? this.renderFirefoxRequired() : null }
+        {renderGetFirefox ? this.renderFirefoxRequired() : null}
         <div id="frame" className="inverse-color-scheme full-height column-space">
-        <div className="frame-header default-color-scheme">
-        <a className="block-button button secondary" href={ myShotsHref } onClick={this.onClickMyShots.bind(this)}>{ myShotsText }</a>
-          <div className="shot-main-actions">
-            <div className="shot-info">
-              <EditableTitle title={shot.title} isOwner={this.props.isOwner} />
-              <div className="shot-subtitle">
-                { linkTextShort ? <a className="subtitle-link" rel="noopener noreferrer" href={ shot.url } target="_blank" onClick={ this.onClickOrigUrl.bind(this, "navbar") }>{ linkTextShort }</a> : null }
-                <span className="time-diff">{ timeDiff }</span>
+          <div className="frame-header default-color-scheme">
+            <a className="block-button button secondary" href={homeLinkHref} onClick={this.onClickMyShots.bind(this)}>{homeLinkText}</a>
+            <div className="shot-main-actions">
+              <div className="shot-info">
+                <EditableTitle title={shot.title} isOwner={this.props.isOwner} />
+                <div className="shot-subtitle">
+                  {linkTextShort ? <a className="subtitle-link" rel="noopener noreferrer" href={shot.url} target="_blank" onClick={this.onClickOrigUrl.bind(this, "navbar")}>{linkTextShort}</a> : null}
+                  <span className="time-diff">{timeDiff}</span>
+                  {expirationSubTitle}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="shot-alt-actions">
-            { favoriteShotButton }
-            { trashOrFlagButton }
-            { this.props.enableAnnotations ? editButton : null }
-            { highlight }
-            <ShareButton abTests={this.props.abTests} clipUrl={clipUrl} shot={shot} isOwner={this.props.isOwner} staticLink={this.props.staticLink} renderExtensionNotification={renderExtensionNotification} isExtInstalled={this.props.isExtInstalled} />
-            <Localized id="shotPageDownloadShot">
-              <a className="button primary" href={ this.props.downloadUrl } onClick={ this.onClickDownload.bind(this) }
-                title="Download the shot image">
-                <img id="downloadIcon" style={noText ? {marginRight: "0"} : {}}
+            <div className="shot-alt-actions">
+              {favoriteShotButton}
+              {this.props.enableAnnotations ? editButton : null}
+              {editButtonHighlight}
+              <ShareButton abTests={this.props.abTests} clipUrl={clipUrl} shot={shot} isOwner={this.props.isOwner} staticLink={this.props.staticLink} renderExtensionNotification={renderExtensionNotification} isExtInstalled={this.props.isExtInstalled} />
+              {copyShotButton}
+              <Localized id="shotPageDownloadShot">
+                <a className="button primary" href={this.props.downloadUrl} onClick={this.onClickDownload.bind(this)}
+                  title="Download the shot image">
+                  <img id="downloadIcon" style={noText ? { marginRight: "0" } : {}}
                     src={this.props.staticLink("/static/img/download-white.svg")}
                     width="20" height="20" />
-                { !noText &&
-                    <Localized id="shotPageDownload"><span className="download-text">Download</span></Localized> }
-              </a>
-            </Localized>
+                  {!noText &&
+                    <Localized id="shotPageDownload"><span className="download-text">Download</span></Localized>}
+                </a>
+              </Localized>
+              {deleteButton}
+            </div>
           </div>
+          <section className="clips">
+            {this.props.isOwner && this.props.loginFailed ? <LoginFailedWarning /> : null}
+            {errorMessages}
+            {clips}
+          </section>
+          <Footer forUrl={shot.viewUrl} {...this.props} />
         </div>
-        <section className="clips">
-          { this.props.isOwner && this.props.loginFailed ? <LoginFailedWarning /> : null }
-          { errorMessages }
-          { clips }
-        </section>
-        <Footer forUrl={ shot.viewUrl } {...this.props} />
-      </div>
-    </reactruntime.BodyTemplate>);
+      </reactruntime.BodyTemplate>);
   }
 
   promoClose() {
@@ -542,6 +564,10 @@ class Body extends React.Component {
       const TWO_WEEKS_IN_MS = 1209600000;
       this.props.controller.changeShotExpiration(this.props.shot, Date.now() + TWO_WEEKS_IN_MS);
     }
+  }
+
+  onWantToFavorite() {
+
   }
 
   onClickDownload() {
