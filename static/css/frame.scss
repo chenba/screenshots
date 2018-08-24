@@ -176,23 +176,25 @@
 
 .back-to-home {
   @include respond-to("small") {
-    background-position: left center;
-    background-repeat: no-repeat;
-    background-size: 24px auto;
     height: 32px;
-    padding-left: 30px;
   }
 
-  background-image: url("../img/new-scissors-icon.svg");
-  background-position: left bottom;
-  background-repeat: no-repeat;
-  background-size: 30px auto;
+  display: flex;
   height: 34px;
-  padding-left: 42px;
 
-  > span {
-    display: block;
+  > img {
+    height: 36px;
+    margin-left: 16px;
+  }
+
+  > div {
+    font-weight: bold;
+    margin: 0 16px;
     text-align: left;
+
+    > div:first-child {
+      font-size: 1.2em;
+    }
   }
 
   .sub {
@@ -210,15 +212,10 @@
 .shot-title {
 
   @include respond-to("small") {
-    font-size: 20px;
-    line-height: 20px;
-    padding-bottom: 4px;
   }
 
-  font-size: 28px;
-  font-weight: 300;
-  line-height: 28px;
-  padding-bottom: 8px;
+  margin-top: 1px;
+  margin-bottom: 2px;
 
   &.saving {
     opacity: 0.7;

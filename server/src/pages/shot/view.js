@@ -275,7 +275,7 @@ class Body extends React.Component {
     if (typeof expireTime !== "number") {
       expireTime = expireTime.getTime();
     }
-    const deleteTime = new Date(expireTime + this.props.retentionTime);
+    const deleteTime = expireTime + this.props.retentionTime;
     let restoreWidget;
     const expirationTimeDiff = <TimeDiff date={deleteTime} />;
     const restoreDate = new Date(Date.now() + this.props.defaultExpiration).toLocaleString();
@@ -354,7 +354,7 @@ class Body extends React.Component {
       expirationSubTitle = <Localized id="shotPageDoesNotExpire"><span>does not expire</span></Localized>;
     } else {
       const expired = shot.expireTime < Date.now();
-      const expireTimeDiff = <TimeDiff date={shot.expireTime}/>;
+      const expireTimeDiff = <TimeDiff date={shot.expireTime.getTime()}/>;
       if (expired) {
         expirationSubTitle = <Localized id="shotPageExpired" $timediff={expireTimeDiff}><span>expired {expireTimeDiff}</span></Localized>;
       } else {
@@ -410,14 +410,15 @@ class Body extends React.Component {
           onMouseOut={this.onMouseOutHighlight.bind(this)}></div>;
       }
     } else {
-      homeLinkText = <span className="back-to-home">
-        <span>
-          Firefox
-        </span>
-        <span style={{fontWeight: "bold"}}>
-          Screenshots
-        </span>
-      </span>;
+      homeLinkText = <div className="back-to-home">
+        <Localized id="firefoxScreenshotsIcon">
+          <img src={ this.props.staticLink("static/img/new-scissors-icon.svg") } alt="Mozilla Screenshots icon" />
+        </Localized>
+        <div>
+          <div>Firefox</div>
+          <div>Screenshots</div>
+        </div>
+      </div>;
       homeLinkHref = "/";
     }
 
@@ -434,37 +435,37 @@ class Body extends React.Component {
       <reactruntime.BodyTemplate {...this.props}>
         {renderGetFirefox ? this.renderFirefoxRequired() : null}
         <div id="frame" className="inverse-color-scheme full-height column-space">
-          <div className="frame-header default-color-scheme">
-            <a className="block-button button secondary" href={homeLinkHref} onClick={this.onClickMyShots.bind(this)}>{homeLinkText}</a>
-            <div className="shot-main-actions">
-              <div className="shot-info">
+          <section className="navbar">
+            <div className="frame-header default-color-scheme">
+              <a className="block-button button secondary" style={{padding: "0"}} href={homeLinkHref} onClick={this.onClickMyShots.bind(this)}>{homeLinkText}</a>
+              <header className="shot-main-actions shot-info">
                 <EditableTitle title={shot.title} isOwner={this.props.isOwner} />
                 <div className="shot-subtitle">
                   {linkTextShort ? <a className="subtitle-link" rel="noopener noreferrer" href={shot.url} target="_blank" onClick={this.onClickOrigUrl.bind(this, "navbar")}>{linkTextShort}</a> : null}
                   <span className="time-diff">{timeDiff}</span>
                   {expirationSubTitle}
                 </div>
+              </header>
+              <div className="shot-alt-actions">
+                {favoriteShotButton}
+                {this.props.enableAnnotations ? editButton : null}
+                {editButtonHighlight}
+                <ShareButton abTests={this.props.abTests} clipUrl={clipUrl} shot={shot} isOwner={this.props.isOwner} staticLink={this.props.staticLink} renderExtensionNotification={renderExtensionNotification} isExtInstalled={this.props.isExtInstalled} />
+                {copyShotButton}
+                <Localized id="shotPageDownloadShot">
+                  <a className="button primary" href={this.props.downloadUrl} onClick={this.onClickDownload.bind(this)}
+                    title="Download the shot image">
+                    <img id="downloadIcon" style={noText ? { marginRight: "0" } : {}}
+                      src={this.props.staticLink("/static/img/download-white.svg")}
+                      width="20" height="20" />
+                    {!noText &&
+                      <Localized id="shotPageDownload"><span className="download-text">Download</span></Localized>}
+                  </a>
+                </Localized>
+                {deleteButton}
               </div>
             </div>
-            <div className="shot-alt-actions">
-              {favoriteShotButton}
-              {this.props.enableAnnotations ? editButton : null}
-              {editButtonHighlight}
-              <ShareButton abTests={this.props.abTests} clipUrl={clipUrl} shot={shot} isOwner={this.props.isOwner} staticLink={this.props.staticLink} renderExtensionNotification={renderExtensionNotification} isExtInstalled={this.props.isExtInstalled} />
-              {copyShotButton}
-              <Localized id="shotPageDownloadShot">
-                <a className="button primary" href={this.props.downloadUrl} onClick={this.onClickDownload.bind(this)}
-                  title="Download the shot image">
-                  <img id="downloadIcon" style={noText ? { marginRight: "0" } : {}}
-                    src={this.props.staticLink("/static/img/download-white.svg")}
-                    width="20" height="20" />
-                  {!noText &&
-                    <Localized id="shotPageDownload"><span className="download-text">Download</span></Localized>}
-                </a>
-              </Localized>
-              {deleteButton}
-            </div>
-          </div>
+          </section>
           <section className="clips">
             {this.props.isOwner && this.props.loginFailed ? <LoginFailedWarning /> : null}
             {errorMessages}
@@ -634,7 +635,7 @@ class EditableTitle extends React.Component {
     if (this.state.isSaving) {
       className += " saving";
     }
-    return <span ref={titleElement => this.titleElement = titleElement} className={className} {...handlers}>{this.state.isSaving || this.props.title}</span>;
+    return <h1 ref={titleElement => this.titleElement = titleElement} className={className} {...handlers}>{this.state.isSaving || this.props.title}</h1>;
   }
 
   renderEditing() {
