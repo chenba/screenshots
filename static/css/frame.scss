@@ -4,7 +4,7 @@
 .frame-header {
   @include respond-to("medium") {
     @include flex-container(row, space-between, stretch);
-    height: $grid-unit * 5;
+    height: 98px;
   }
 
   @include respond-to("small") {
@@ -214,8 +214,8 @@
   @include respond-to("small") {
   }
 
-  margin-top: 1px;
-  margin-bottom: 2px;
+  font-size: 32px;
+  margin: -1px 0 2px;
 
   &.saving {
     opacity: 0.7;

@@ -349,7 +349,7 @@ class Body extends React.Component {
     const linkTextShort = shot.urlDisplay;
     const timeDiff = <TimeDiff date={shot.createdDate} />;
 
-    let expirationSubTitle = null;
+    let expirationSubTitle;
     if (shot.expireTime === null) {
       expirationSubTitle = <Localized id="shotPageDoesNotExpire"><span>does not expire</span></Localized>;
     } else {
