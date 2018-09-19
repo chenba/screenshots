@@ -199,11 +199,16 @@ errorThirdPartyCookiesEnabled = If you took this shot and cannot delete it, you 
 
 ## Shot Page New Feature Promotion Dialog.
 # Note: If possible, choose a short translation to better fit into the card.
-promoTitle = Take Note!
-promoMessage = Updated editing tools let you crop, highlight, and even add text to your shot.
-promoLink = Give them a try
 promoCloseButton =
     .title = Close notification
+
+editorPromoTitle = Take Note!
+editorPromoMessage = Updated editing tools let you crop, highlight, and even add text to your shot.
+editorPromoCallToAction = Give them a try
+
+favShotsPromoTitle = Favorite Shots!
+favShotsPromoMessage = You can now sign in with Firefox Account to favorite your shots and save forever.
+favShotPromoCallToAction = Give it a try!
 
 ## Annotations
 

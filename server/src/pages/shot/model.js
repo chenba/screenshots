@@ -13,6 +13,18 @@ exports.createModel = function(req) {
   const title = req.getText("shotPageTitle", {originalTitle: req.shot.title});
   const enableAnnotations = req.config.enableAnnotations;
   const isFxaAuthenticated = req.accountId && req.accountId === req.shot.accountId;
+  const promos = {
+    editor: {
+      title: req.getText("editorPromoTitle"),
+      message: req.getText("editorPromoMessage"),
+      callToAction: req.getText("editorPromoCallToAction"),
+    },
+    favShot: {
+      title: req.getText("favShotsPromoTitle"),
+      message: req.getText("favShotsPromoMessage"),
+      callToAction: req.getText("favShotPromoCallToAction"),
+    },
+  };
   const serverPayload = {
     title,
     staticLink: req.staticLink,
@@ -42,6 +54,7 @@ exports.createModel = function(req) {
     downloadUrl,
     isMobile,
     enableAnnotations,
+    promos,
   };
   const clientPayload = {
     title,
@@ -74,6 +87,7 @@ exports.createModel = function(req) {
     downloadUrl,
     isMobile,
     enableAnnotations,
+    promos,
   };
   if (serverPayload.expireTime !== null && Date.now() > serverPayload.expireTime) {
     clientPayload.shot = {

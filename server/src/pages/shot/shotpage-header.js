@@ -6,10 +6,20 @@ const sendEvent = require("../../browser-send-event.js");
 const { SignInButton } = require("../../signin-button.js");
 const { Header } = require("../../header.js");
 const { TimeDiff } = require("./time-diff");
+const { PromoDialog } = require("./promo-dialog");
 
 exports.ShotPageHeader = class ShotPageHeader extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      showPromo: false,
+    };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.showPromo !== prevProps.showPromo) {
+      this.setState({showPromo: this.props.showPromo});
+    }
   }
 
   renderMyShotsText() {
@@ -90,10 +100,19 @@ exports.ShotPageHeader = class ShotPageHeader extends React.Component {
   }
 
   renderFxASignIn() {
+    let promo = null;
+    if (this.props.promo) {
+      promo = <PromoDialog
+                display={this.state.showPromo}
+                {...this.props.promo}
+                promoClose={this.props.closePromoCallback}/>;
+    }
+
     return (
       this.props.isOwner ?
         <div className="shot-fxa-signin">
           <SignInButton isAuthenticated={this.props.isFxaAuthenticated} initialPage={this.props.shot.id} />
+          {promo}
         </div> : null
     );
   }
@@ -124,6 +143,7 @@ exports.ShotPageHeader.propTypes = {
   isFxaAuthenticated: PropTypes.bool,
   expireTime: PropTypes.number,
   shouldGetFirefox: PropTypes.bool,
+  promo: PropTypes.object,
 };
 
 class EditableTitle extends React.Component {

@@ -1,7 +1,6 @@
 const React = require("react");
 const PropTypes = require("prop-types");
 const { Localized } = require("fluent-react/compat");
-const sendEvent = require("../../browser-send-event.js");
 
 exports.PromoDialog = class PromoDialog extends React.Component {
   constructor(props) {
@@ -11,18 +10,12 @@ exports.PromoDialog = class PromoDialog extends React.Component {
   render() {
     if (this.props.display) {
       return <div id="promo-dialog-panel" className="promo-panel default-color-scheme" >
-        <Localized id="promoCloseButton">
-          <a className="box-close" title="Close notification" onClick={this.closePanel.bind(this)}></a>
-        </Localized>
-        <Localized id="promoTitle">
-          <h4 className="title">Take Note!</h4>
-        </Localized>
-        <Localized id="promoMessage">
-          <p className="message">
-            Updated editing tools let you crop, highlight, and even add text to your shot.
-          </p>
-        </Localized>
-        <p className="message">✨<Localized id="promoLink"><span className="message-text">Give them a try</span></Localized>✨</p>
+        <a className="box-close" title="Close notification" onClick={this.closePanel.bind(this)}></a>
+        <h4 className="title">{this.props.title}</h4>
+        <p className="message">
+          {this.props.message}
+        </p>
+        <p className="message">✨<span className="message-text">{this.props.callToAction}</span>✨</p>
       </div>;
     }
     return null;
@@ -30,11 +23,13 @@ exports.PromoDialog = class PromoDialog extends React.Component {
 
   closePanel(event) {
     this.props.promoClose();
-    sendEvent("promo-closed");
   }
 };
 
 exports.PromoDialog.propTypes = {
   display: PropTypes.bool,
   promoClose: PropTypes.func,
+  title: PropTypes.string,
+  message: PropTypes.string,
+  callToAction: PropTypes.string,
 };

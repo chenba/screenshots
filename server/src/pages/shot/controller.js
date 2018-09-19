@@ -25,12 +25,12 @@ function shouldShowPromo(model) {
     return false;
   }
   let show = false;
-  const count = localStorage.hasSeenPromoDialog;
+  const count = localStorage.hasSeenEditorPromoDialog;
   if (!count) {
-    localStorage.hasSeenPromoDialog = 1;
+    localStorage.hasSeenEditorPromoDialog = 1;
     show = true;
   } else if (count < 3) {
-    localStorage.hasSeenPromoDialog = parseInt(count, 10) + 1;
+    localStorage.hasSeenEditorPromoDialog = parseInt(count, 10) + 1;
     show = true;
   }
   return show;
@@ -77,7 +77,7 @@ exports.launch = function(data) {
     }
   }
   model.highlightEditButton = shouldHighlightEditIcon(model);
-  model.promoDialog = shouldShowPromo(model);
+  model.showEditorPromoDialog = shouldShowPromo(model);
   if (firstSet) {
     refreshHash();
   }

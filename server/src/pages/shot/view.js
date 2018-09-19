@@ -183,12 +183,13 @@ class Body extends React.Component {
     this.state = {
       hidden: false,
       imageEditing: false,
+      showFavShotPromo: false,
     };
   }
 
   componentDidMount() {
-    this.setState({highlightEditButton: this.props.highlightEditButton || this.props.promoDialog});
-    this.setState({promoDialog: this.props.promoDialog});
+    this.setState({highlightEditButton: this.props.highlightEditButton || this.props.showEditorPromoDialog});
+    this.setState({showEditorPromoDialog: this.props.showEditorPromoDialog});
   }
 
   clickDeleteHandler() {
@@ -348,7 +349,8 @@ class Body extends React.Component {
     const inactive = this.props.isFxaAuthenticated ? "" : "inactive";
 
     favoriteShotButton = <div className="favorite-shot-button"><Localized id="shotPagefavoriteButton">
-      <button className={`nav-button ${inactive}`} disabled={!this.props.isFxaAuthenticated} onClick={this.onClickFavorite.bind(this)}>
+      <button className={`nav-button ${inactive}`}
+        onClick={this.onClickFavorite.bind(this)}>
         <span className={`icon-favorite favorite ${activeFavClass}`} ></span>
         <Localized id="shotPageFavorite">
           <span className={`favorite-text favorite ${activeFavClass} `}>Favorite</span>
@@ -381,7 +383,10 @@ class Body extends React.Component {
             </Localized>
           </button>
         </Localized>
-        <PromoDialog promoClose={this.promoClose.bind(this)} display={this.state.promoDialog} />
+        <PromoDialog
+          promoClose={this.closeEditorPromo.bind(this)}
+          display={this.state.showEditorPromoDialog}
+          {...this.props.promos.editor} />
         { highlight }
         </div> : null;
     }
@@ -406,7 +411,11 @@ class Body extends React.Component {
       <reactruntime.BodyTemplate {...this.props}>
         <div id="frame" className="inverse-color-scheme full-height column-space">
         <ShotPageHeader isOwner={this.props.isOwner} isFxaAuthenticated={this.props.isFxaAuthenticated}
-          shot={this.props.shot} expireTime={this.props.expireTime} shouldGetFirefox={renderGetFirefox}>
+          shot={this.props.shot} expireTime={this.props.expireTime}
+          shouldGetFirefox={renderGetFirefox}
+          promo={this.props.promos.favShot}
+          showPromo={this.state.showFavShotPromo}
+          closePromoCallback={this.closeFavShotPromo.bind(this)}>
           { favoriteShotButton }
           { editButton }
           { downloadButton }
@@ -422,10 +431,15 @@ class Body extends React.Component {
     </reactruntime.BodyTemplate>);
   }
 
-  promoClose() {
-    this.setState({promoDialog: false});
+  closeEditorPromo() {
+    this.setState({showEditorPromoDialog: false});
     // set counter to max to stop showing notification again
     localStorage.hasSeenPromoDialog = 3;
+    sendEvent("editor-promo-closed");
+  }
+
+  closeFavShotPromo() {
+    this.setState({showFavShotPromo: false});
   }
 
   onMouseOverHighlight() {
@@ -443,7 +457,7 @@ class Body extends React.Component {
     }
     // Close promo dialog if user clicked edit after seeing new edit tool promo
     if (this.props.promoDialog) {
-      this.promoClose();
+      this.closeEditorPromo();
     }
   }
 
@@ -478,6 +492,14 @@ class Body extends React.Component {
   }
 
   onClickFavorite() {
+    if (!this.props.isFxaAuthenticated) {
+      this.setState({
+        showEditorPromoDialog: false,
+        showFavShotPromo: true,
+      });
+      return;
+    }
+
     if (this.props.expireTime) {
       sendEvent("set-favorite", "navbar");
       const INDEFINITE = 0;
@@ -486,6 +508,11 @@ class Body extends React.Component {
       sendEvent("unset-favorite", "navbar");
       this.props.controller.changeShotExpiration(this.props.shot, this.props.defaultExpiration);
     }
+  }
+
+  onCloseFavShotPromo() {
+    this.setState({showFavShotPromo: false});
+    sendEvent("fav-shot-promo-closed");
   }
 
   onClickDownload() {
